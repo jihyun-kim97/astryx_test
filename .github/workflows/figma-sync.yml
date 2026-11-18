@@ -1,0 +1,123 @@
+name: Sync merged UI changes to Figma
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Synchronize every mapped Figma target
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: figma-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Update AstryStock Figma
+    runs-on: [self-hosted, windows, x64, figma-sync]
+    timeout-minutes: 45
+    env:
+      FIGMA_SYNC_BASE_SHA: ${{ github.event.before }}
+      FIGMA_SYNC_HEAD_SHA: ${{ github.sha }}
+      FIGMA_SYNC_FORCE: ${{ inputs.force || false }}
+      CODEX_HOME: ${{ vars.CODEX_FIGMA_HOME }}
+
+    steps:
+      - name: Check out merged revision
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build synchronization plan
+        id: plan
+        shell: pwsh
+        run: node scripts/figma-sync-plan.mjs
+
+      - name: Verify runner authentication
+        if: steps.plan.outputs.sync_required == 'true'
+        shell: pwsh
+        run: |
+          if (-not $env:CODEX_HOME) { throw 'Repository variable CODEX_FIGMA_HOME is not configured.' }
+          codex --version
+          $mcpList = codex mcp list | Out-String
+          $mcpList
+          if ($mcpList -notmatch 'figma') { throw 'The persistent Codex home does not contain an authenticated Figma MCP connection.' }
+
+      - name: Synchronize Figma with Codex
+        if: steps.plan.outputs.sync_required == 'true'
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          working-directory: .
+          codex-home: ${{ vars.CODEX_FIGMA_HOME }}
+          prompt-file: .figma/sync-prompt.md
+          output-schema-file: .figma/sync-output.schema.json
+          output-file: .figma/sync-result.json
+          safety-strategy: unsafe
+          codex-args: '["--dangerously-bypass-approvals-and-sandbox"]'
+
+      - name: Verify Figma synchronization result
+        if: always() && steps.plan.outcome == 'success'
+        shell: pwsh
+        run: node scripts/figma-sync-verify.mjs
+
+      - name: Persist new Figma node mappings
+        if: steps.plan.outputs.sync_required == 'true' && success()
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .figma/sync-map.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore(figma): update synchronized node mappings [skip ci]"
+            git push
+          }
+
+      - name: Upload synchronization report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: figma-sync-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            .figma/run-plan.json
+            .figma/sync-result.json
+            .figma/sync-summary.md
+
+      - name: Comment on the merged commit
+        if: always() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        env:
+          FIGMA_FILE_URL: https://www.figma.com/design/JZq7mgmc0WTQoG5HdOmzgc
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const path = '.figma/sync-summary.md';
+            const report = fs.existsSync(path)
+              ? fs.readFileSync(path, 'utf8')
+              : '# Figma synchronization result\n\nThe workflow ended before a report was generated.';
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `${report}\n\n[Figma file](${process.env.FIGMA_FILE_URL})`,
+            });

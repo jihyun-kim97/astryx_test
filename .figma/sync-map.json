@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "figma": {
+    "fileKey": "JZq7mgmc0WTQoG5HdOmzgc",
+    "fileUrl": "https://www.figma.com/design/JZq7mgmc0WTQoG5HdOmzgc",
+    "productPage": {
+      "id": "10:2",
+      "name": "06 Product Screens"
+    }
+  },
+  "watch": [
+    {
+      "glob": "src/theme.ts",
+      "targets": ["foundations", "components", "dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Astryx theme tokens or typography changed"
+    },
+    {
+      "glob": "src/App.tsx",
+      "targets": ["components", "dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Application structure, features, or UI composition changed"
+    },
+    {
+      "glob": "src/App.css",
+      "targets": ["dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Layout, spacing, responsive behavior, or visual styling changed"
+    },
+    {
+      "glob": "src/data.ts",
+      "targets": ["dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Product or movement fixtures changed"
+    },
+    {
+      "glob": "src/**/*.tsx",
+      "targets": ["components", "dashboard", "inventoryList", "productDetailModal"],
+      "reason": "React UI source changed"
+    },
+    {
+      "glob": "src/**/*.css",
+      "targets": ["dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Application styles changed"
+    },
+    {
+      "glob": "package.json",
+      "targets": ["foundations", "components", "dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Astryx or UI dependency versions changed"
+    },
+    {
+      "glob": "package-lock.json",
+      "targets": ["foundations", "components", "dashboard", "inventoryList", "productDetailModal"],
+      "reason": "Resolved UI dependencies changed"
+    }
+  ],
+  "nodes": {
+    "foundations": {
+      "pageId": "3:2",
+      "rootId": "6:2"
+    },
+    "components": {
+      "pageId": "3:3",
+      "sets": {
+        "Button": "7:24",
+        "Badge": "7:36",
+        "TextInput": "7:58",
+        "ProgressBar": "7:68"
+      }
+    },
+    "dashboard": {
+      "pageId": "10:2",
+      "nodeId": "12:24",
+      "name": "AstryStock / Dashboard",
+      "source": ["src/App.tsx", "src/App.css", "src/data.ts"]
+    },
+    "inventoryList": {
+      "pageId": "10:2",
+      "nodeId": "13:98",
+      "name": "AstryStock / Inventory List",
+      "source": ["src/App.tsx", "src/App.css", "src/data.ts"]
+    },
+    "productDetailModal": {
+      "pageId": "10:2",
+      "nodeId": "15:238",
+      "name": "AstryStock / Product Detail Modal",
+      "source": ["src/App.tsx", "src/App.css", "src/data.ts"]
+    },
+    "screenComponents": {
+      "NavItem": "10:3",
+      "StatCard": "10:12",
+      "InventoryRow": "10:45",
+      "CompactProductRow": "12:5",
+      "MovementRow": "12:16",
+      "HistoryRow": "15:224"
+    }
+  },
+  "validation": {
+    "requireEditableLayers": true,
+    "forbidFullScreenImageFill": true,
+    "screenshotMaxDimension": 1800,
+    "productFont": "Pretendard",
+    "figmaFallbackFont": "Noto Sans KR",
+    "requiredChecks": [
+      "no clipped text",
+      "no overlapping content",
+      "no placeholder copy",
+      "component instances preserved",
+      "Astryx variable bindings preserved",
+      "affected screens visually match the updated application"
+    ]
+  }
+}
